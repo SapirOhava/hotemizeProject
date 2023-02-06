@@ -49,8 +49,7 @@ namespace BulkyBookWeb.HttpServices
         }
         private async Task<ExchangeRateList?> GetFromFileSystem()
         {
-            var timeDiff = DateTime.Now - File.GetLastWriteTime(fileSystemPath);
-            if (File.Exists(fileSystemPath) && timeDiff.Hours < 4)
+            if (File.Exists(fileSystemPath) && (DateTime.Now - File.GetLastWriteTime(fileSystemPath)).Hours < 4)
             {
                 var rates = File.ReadAllText(fileSystemPath);
                 var updatedRate = JsonSerializer.Deserialize<ExchangeRateList>(rates);
@@ -63,7 +62,6 @@ namespace BulkyBookWeb.HttpServices
         {
             try
             {
-                //we make a post async request to our client
                 var resBodyString = await _httpClient.GetStringAsync($"{_configuration["openexchangerates"]}");
                 var rates = JsonSerializer.Deserialize<ExchangeRateList>(resBodyString);
                 insertToFileSystem(rates);
@@ -79,14 +77,11 @@ namespace BulkyBookWeb.HttpServices
         }
         public async Task<ExchangeRateList?> GetValue()
         {
-            var currentTime = DateTime.Now;
             IStorage[] resources = { memory, fileSystem, webService };
-            TimeSpan timeDiff;
             List<Func<Task<ExchangeRateList?>>> DelegateStartup =
             new List<Func<Task<ExchangeRateList?>>>() { GetFromMemory, GetFromFileSystem, GetFromWebService };
             for (int i = 0; i < resources.Length; i++)
             {
-                var resource = resources[i];
                 var res = await DelegateStartup[i]();
                 if (res != null)
                 {

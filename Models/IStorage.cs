@@ -9,10 +9,5 @@ namespace BulkyBookWeb.Models
         public bool CanRead { get; set; }
         [Required]
         public bool CanWrite { get; set; }
-        [Required]
-        public bool IsExpired { get; set; }
-        [Required]
-        public int HoursUntilExpire { get; set; }
-
     }
 }
