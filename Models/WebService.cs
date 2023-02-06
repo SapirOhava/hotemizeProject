@@ -5,8 +5,7 @@ namespace BulkyBookWeb.Models
         public bool CanRead { get; set; } = true;
         public bool CanWrite { get; set; } = false;
         public bool IsExpired { get; set; } = false;
-        public bool IsInserted { get; set; } = true;
-        public DateTime LastUpdatedTime { get; set; }
-        public int HoursUntilExpire { get; set; } = 0;
+
+        public int HoursUntilExpire { get; set; } = Int32.MaxValue;
     }
 }

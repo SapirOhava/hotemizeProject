@@ -13,8 +13,6 @@ namespace BulkyBookWeb.Models
         public bool IsExpired { get; set; }
         [Required]
         public int HoursUntilExpire { get; set; }
-        [Required]
-        public bool IsInserted { get; set; }
-        public DateTime LastUpdatedTime { get; set; }
+
     }
 }

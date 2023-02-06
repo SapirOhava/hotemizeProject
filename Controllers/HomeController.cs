@@ -1,32 +1,36 @@
-﻿using BulkyBookWeb.Models;
+
+using BulkyBookWeb.HttpServices;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 
 namespace BulkyBookWeb.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly IChainResource _chainResource;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(IChainResource chainResource)
         {
-            _logger = logger;
+            _chainResource = chainResource;
         }
 
-        public IActionResult Index()
+        //GET
+        public async Task<ActionResult> GetFromApi()
         {
-            return View();
+            try
+            {
+                var rates = await _chainResource.GetValue();
+                if (rates == null)
+                {
+                    return BadRequest("err");
+                }
+                return Ok(rates);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+
         }
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
     }
 }

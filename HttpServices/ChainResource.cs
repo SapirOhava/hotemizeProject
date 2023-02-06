@@ -1,6 +1,6 @@
 using System.Text.Json;
-using BulkyBookWeb.Data;
 using BulkyBookWeb.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BulkyBookWeb.HttpServices
 {
@@ -8,40 +8,49 @@ namespace BulkyBookWeb.HttpServices
     {
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
-        private readonly ApplicationDbContext _db;
+
+        private IMemoryCache _cache;
         private Memory memory;
         private WebService webService;
         private FileSystem fileSystem;
-        private const string fileSystemPath = @"D:\path.json";
+        private const string fileSystemPath = @"C:\Users\Public\hotelmize.json";
+        private const string ratesCacheKey = "ratesList";
 
-        public ChainResource(HttpClient httpClient, IConfiguration configuration, ApplicationDbContext db)
+        public ChainResource(HttpClient httpClient, IConfiguration configuration, IMemoryCache cache)
         {
             _httpClient = httpClient;
             _configuration = configuration;
-            _db = db;
+            _cache = cache;
             memory = new Memory();
             webService = new WebService();
             fileSystem = new FileSystem();
         }
         private void insertToMemory(ExchangeRateList rateRes)
         {
-            _db.RatesRes.Add(rateRes);
-            _db.SaveChanges();
-            memory.LastUpdatedTime = DateTime.Now;
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromSeconds(3600));
+            _cache.Set(ratesCacheKey, rateRes, cacheEntryOptions);
         }
         private void insertToFileSystem(ExchangeRateList rateRes)
         {
             string json = JsonSerializer.Serialize(rateRes);
             File.WriteAllText(fileSystemPath, json);
-            fileSystem.LastUpdatedTime = DateTime.Now;
         }
         private async Task<ExchangeRateList?> GetFromMemory()
         {
-            return _db.RatesRes.FirstOrDefault();
+            if (_cache.TryGetValue(ratesCacheKey, out ExchangeRateList rateList))
+            {
+                return rateList;
+            }
+            else
+            {
+                return null;
+            }
         }
         private async Task<ExchangeRateList?> GetFromFileSystem()
         {
-            if (File.Exists(fileSystemPath))
+            var timeDiff = DateTime.Now - File.GetLastWriteTime(fileSystemPath);
+            if (File.Exists(fileSystemPath) && timeDiff.Hours < 4)
             {
                 var rates = File.ReadAllText(fileSystemPath);
                 var updatedRate = JsonSerializer.Deserialize<ExchangeRateList>(rates);
@@ -78,10 +87,10 @@ namespace BulkyBookWeb.HttpServices
             for (int i = 0; i < resources.Length; i++)
             {
                 var resource = resources[i];
-                timeDiff = currentTime - resource.LastUpdatedTime;
-                if (resource.IsInserted && timeDiff.Hours < resource.HoursUntilExpire)
+                var res = await DelegateStartup[i]();
+                if (res != null)
                 {
-                    return await DelegateStartup[i]();
+                    return res;
                 }
             }
             return null;
